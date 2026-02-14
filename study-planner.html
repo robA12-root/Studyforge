@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0a0c12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>StudyForge — Exam Planner</title>
+<!-- PWA Manifest inline -->
+<link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22StudyForge%22%2C%22short_name%22%3A%22StudyForge%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230a0c12%22%2C%22theme_color%22%3A%22%230a0c12%22%2C%22description%22%3A%22Exam%20Study%20Planner%22%7D">
+<style>
+  /* ======================================================
+     OFFLINE FONTS — 100% No WiFi Needed
+     Uses fonts pre-installed on every Android & iOS device:
+     • Headings  → "Noto Serif" (Android) / Georgia (iOS/Desktop)
+     • Body      → "Roboto" (Android) / system-ui (iOS/Desktop)
+     • Mono      → "Roboto Mono" (Android) / "Courier New" (all)
+     ====================================================== */
+  @font-face {
+    font-family: 'AppSerif';
+    src: local('Noto Serif'), local('Georgia'), local('Times New Roman');
+    font-weight: 400 900;
+  }
+  @font-face {
+    font-family: 'AppSans';
+    src: local('Roboto'), local('system-ui'), local('Segoe UI'), local('Helvetica Neue'), local('Arial');
+    font-weight: 300 700;
+  }
+  @font-face {
+    font-family: 'AppMono';
+    src: local('Roboto Mono'), local('Courier New'), local('Courier');
+    font-weight: 400 500;
+  }
+</style>
+<style>
+  :root {
+    --bg:#0a0c12;--surface:#11141e;--surface2:#181c2a;--surface3:#1e2334;
+    --gold:#c9a84c;--gold-light:#e8c97a;--gold-dim:rgba(201,168,76,0.15);
+    --accent:#4f7cff;--accent-dim:rgba(79,124,255,0.15);
+    --green:#3ecf8e;--green-dim:rgba(62,207,142,0.15);
+    --red:#ff5c7a;--red-dim:rgba(255,92,122,0.12);
+    --purple:#a78bfa;--purple-dim:rgba(167,139,250,0.15);
+    --text:#e8eaf6;--text-muted:#7a80a0;--text-dim:#3f4460;
+    --border:rgba(255,255,255,0.06);--border-gold:rgba(201,168,76,0.25);
+    --radius:18px;--radius-sm:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'AppSans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;top:-200px;left:-200px;width:600px;height:600px;background:radial-gradient(circle,rgba(79,124,255,0.07) 0%,transparent 70%);pointer-events:none;z-index:0;}
+  body::after{content:'';position:fixed;bottom:-100px;right:-100px;width:500px;height:500px;background:radial-gradient(circle,rgba(201,168,76,0.06) 0%,transparent 70%);pointer-events:none;z-index:0;}
+
+  /* HEADER */
+  .header{position:sticky;top:0;z-index:100;background:rgba(10,12,18,0.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;}
+  .logo{display:flex;align-items:center;gap:10px;}
+  .logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--gold),var(--accent));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+  .logo-text{font-family:'AppSerif',serif;font-size:19px;font-weight:700;background:linear-gradient(135deg,var(--gold-light),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .header-right{display:flex;align-items:center;gap:10px;}
+  .header-date{font-size:11px;color:var(--text-muted);font-family:'AppMono',monospace;}
+  .notif-bell{position:relative;background:var(--surface2);border:1px solid var(--border);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all 0.2s;}
+  .notif-bell:hover{border-color:var(--gold);transform:scale(1.05);}
+  .notif-bell.granted{border-color:rgba(62,207,142,0.4);}
+  .notif-bell.denied{border-color:rgba(255,92,122,0.4);}
+  .bell-badge{position:absolute;top:-3px;right:-3px;background:var(--red);color:white;font-size:8px;font-weight:700;min-width:14px;height:14px;border-radius:7px;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg);padding:0 2px;}
+
+  /* NAV */
+  .nav-tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 6px;overflow-x:auto;scrollbar-width:none;gap:2px;}
+  .nav-tabs::-webkit-scrollbar{display:none;}
+  .nav-tab{padding:13px 16px;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:'AppSans',sans-serif;}
+  .nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+  .nav-tab:hover:not(.active){color:var(--text);}
+
+  /* MAIN */
+  .main{padding:18px;position:relative;z-index:1;padding-bottom:80px;}
+  .view{display:none;}
+  .view.active{display:block;animation:fadeUp 0.3s ease;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+  /* CARDS */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;transition:border-color 0.2s;}
+  .card:hover{border-color:rgba(255,255,255,0.1);}
+  .card-gold{border-color:var(--border-gold);background:linear-gradient(135deg,var(--surface) 60%,rgba(201,168,76,0.04));}
+  .card-purple{border-color:rgba(167,139,250,0.25);background:linear-gradient(135deg,var(--surface) 60%,rgba(167,139,250,0.04));}
+  .card-green{border-color:rgba(62,207,142,0.25);background:linear-gradient(135deg,var(--surface) 60%,rgba(62,207,142,0.04));}
+
+  /* SECTION */
+  .section-title{font-family:'AppSerif',serif;font-size:21px;font-weight:700;color:var(--text);margin-bottom:5px;}
+  .section-sub{font-size:13px;color:var(--text-muted);margin-bottom:18px;}
+
+  /* FORM */
+  .form-group{margin-bottom:14px;}
+  .form-label{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:7px;display:block;}
+  .form-input,.form-select,.form-textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;color:var(--text);font-family:'AppSans',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s,box-shadow 0.2s;appearance:none;}
+  .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-dim);}
+  .form-textarea{resize:vertical;min-height:70px;}
+  .form-select option{background:var(--surface2);}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  /* BUTTONS */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:12px 20px;border-radius:var(--radius-sm);font-family:'AppSans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s;width:100%;}
+  .btn-gold{background:linear-gradient(135deg,var(--gold),#a8872f);color:#0a0c12;}
+  .btn-gold:hover{opacity:0.9;transform:translateY(-1px);box-shadow:0 8px 24px rgba(201,168,76,0.3);}
+  .btn-accent{background:linear-gradient(135deg,var(--accent),#2a55cc);color:white;}
+  .btn-accent:hover{opacity:0.9;transform:translateY(-1px);box-shadow:0 8px 24px rgba(79,124,255,0.3);}
+  .btn-purple{background:linear-gradient(135deg,var(--purple),#7c5fc7);color:white;}
+  .btn-purple:hover{opacity:0.9;transform:translateY(-1px);}
+  .btn-green{background:linear-gradient(135deg,var(--green),#2aad73);color:#0a0c12;}
+  .btn-green:hover{opacity:0.9;transform:translateY(-1px);}
+  .btn-ghost{background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);}
+  .btn-ghost:hover{color:var(--text);border-color:rgba(255,255,255,0.15);}
+  .btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,92,122,0.2);}
+  .btn-sm{padding:7px 13px;font-size:12px;border-radius:8px;width:auto;}
+
+  /* BADGES */
+  .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;font-family:'AppMono',monospace;}
+  .badge-gold{background:var(--gold-dim);color:var(--gold);}
+  .badge-accent{background:var(--accent-dim);color:var(--accent);}
+  .badge-green{background:var(--green-dim);color:var(--green);}
+  .badge-red{background:var(--red-dim);color:var(--red);}
+  .badge-purple{background:var(--purple-dim);color:var(--purple);}
+
+  /* PLAN ITEMS */
+  .plan-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:9px;display:flex;align-items:center;gap:11px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;animation:fadeUp 0.3s ease;}
+  .plan-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:2px;}
+  .plan-item.done{opacity:0.45;}
+  .plan-item.done .plan-title{text-decoration:line-through;color:var(--text-muted);}
+  .plan-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;background:none;cursor:pointer;}
+  .plan-item.done .plan-check{background:var(--green);border-color:var(--green);}
+  .plan-check svg{display:none;}
+  .plan-item.done .plan-check svg{display:block;}
+  .plan-info{flex:1;min-width:0;}
+  .plan-title{font-weight:600;font-size:14px;color:var(--text);margin-bottom:4px;}
+  .plan-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .plan-time{font-size:11px;font-family:'AppMono',monospace;color:var(--text-muted);display:flex;align-items:center;gap:3px;}
+  .priority{display:inline-flex;align-items:center;gap:3px;font-size:11px;}
+  .priority-dot{width:6px;height:6px;border-radius:50%;}
+
+  /* SUBJECT ITEM */
+  .subject-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;margin-bottom:9px;display:flex;align-items:center;gap:11px;transition:all 0.2s;animation:fadeUp 0.3s ease;}
+  .subject-item:hover{border-color:rgba(255,255,255,0.1);}
+  .subject-color-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+  .subject-info{flex:1;min-width:0;}
+  .subject-name{font-weight:600;font-size:15px;color:var(--text);margin-bottom:2px;}
+  .subject-meta{font-size:12px;color:var(--text-muted);}
+
+  /* STATS */
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;}
+  .stat-number{font-family:'AppSerif',serif;font-size:30px;font-weight:900;color:var(--gold);line-height:1;margin-bottom:3px;}
+  .stat-label{font-size:11px;color:var(--text-muted);font-weight:500;}
+  .progress-bar{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-top:7px;}
+  .progress-fill{height:100%;border-radius:3px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1);}
+
+  /* DATE SECTION */
+  .date-section{display:flex;align-items:center;gap:11px;margin-bottom:7px;}
+  .date-circle{width:46px;height:46px;background:var(--gold-dim);border:1px solid var(--border-gold);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;}
+  .date-day{font-family:'AppSerif',serif;font-size:17px;font-weight:700;color:var(--gold);line-height:1;}
+  .date-month{font-size:8px;color:var(--gold);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
+  .date-info h3{font-size:14px;font-weight:600;color:var(--text);}
+  .date-info p{font-size:12px;color:var(--text-muted);}
+  .divider{height:1px;background:var(--border);margin:14px 0;}
+
+  /* COUNTDOWN */
+  .countdown-card{background:linear-gradient(135deg,#1a1030 0%,#0f1a2e 100%);border:1px solid rgba(79,124,255,0.3);border-radius:var(--radius);padding:18px;margin-bottom:14px;position:relative;overflow:hidden;}
+  .countdown-card::before{content:'🎯';position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:44px;opacity:0.18;}
+  .countdown-label{font-size:11px;color:#7090d0;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px;}
+  .countdown-value{font-family:'AppSerif',serif;font-size:34px;font-weight:900;color:var(--accent);line-height:1;}
+  .countdown-sub{font-size:12px;color:#7090d0;margin-top:3px;}
+
+  /* GREETING */
+  .greeting{font-family:'AppSerif',serif;font-size:24px;font-weight:700;color:var(--text);line-height:1.2;margin-bottom:3px;}
+  .greeting span{color:var(--gold);}
+  .upcoming-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .upcoming-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);}
+  .empty-state{text-align:center;padding:36px 18px;color:var(--text-muted);}
+  .empty-icon{font-size:44px;margin-bottom:10px;}
+  .empty-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:5px;}
+  .empty-sub{font-size:13px;}
+
+  /* COLOR PICKER */
+  .color-picker{display:flex;gap:7px;flex-wrap:wrap;}
+  .color-opt{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform 0.15s,border-color 0.15s;}
+  .color-opt.selected,.color-opt:hover{transform:scale(1.15);border-color:white;}
+
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s;}
+  .modal-overlay.open{opacity:1;pointer-events:all;}
+  .modal-sheet{background:var(--surface);border-radius:24px 24px 0 0;border:1px solid var(--border);border-bottom:none;width:100%;max-width:480px;padding:22px 18px 36px;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);max-height:90vh;overflow-y:auto;}
+  .modal-overlay.open .modal-sheet{transform:translateY(0);}
+  .modal-handle{width:38px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px;}
+  .modal-title{font-family:'AppSerif',serif;font-size:19px;font-weight:700;margin-bottom:18px;}
+
+  /* TOAST */
+  .toast-container{position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:7px;width:calc(100% - 36px);max-width:400px;pointer-events:none;}
+  .toast{background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;display:flex;align-items:center;gap:9px;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,0.5);animation:toastIn 0.3s ease;pointer-events:all;}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-10px) scale(0.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+
+  /* NOTIFICATION CENTER */
+  .notif-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:9px;display:flex;gap:11px;align-items:flex-start;transition:all 0.2s;animation:fadeUp 0.3s ease;}
+  .notif-item.unread{border-left:3px solid var(--gold);}
+  .notif-item.fired{opacity:0.55;}
+  .notif-icon-wrap{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+  .notif-content{flex:1;min-width:0;}
+  .notif-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px;}
+  .notif-body{font-size:12px;color:var(--text-muted);margin-bottom:4px;}
+  .notif-time{font-size:11px;font-family:'AppMono',monospace;color:var(--text-dim);}
+  .notif-status{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;}
+
+  /* PERMISSION CARD */
+  .perm-card{background:linear-gradient(135deg,rgba(79,124,255,0.08),rgba(167,139,250,0.06));border:1px solid rgba(79,124,255,0.2);border-radius:var(--radius);padding:20px;margin-bottom:16px;text-align:center;}
+  .perm-card .perm-icon{font-size:44px;margin-bottom:10px;}
+  .perm-card h3{font-family:'AppSerif',serif;font-size:18px;font-weight:700;margin-bottom:6px;}
+  .perm-card p{font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.5;}
+  .perm-features{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;text-align:left;}
+  .perm-feature{background:var(--surface2);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:7px;}
+  .perm-feature span{font-size:16px;}
+
+  /* SCROLL */
+  ::-webkit-scrollbar{width:4px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px;}
+
+  /* SW STATUS */
+  .sw-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-family:'AppMono',monospace;padding:4px 9px;border-radius:20px;margin-bottom:14px;}
+  .sw-status.ok{background:var(--green-dim);color:var(--green);}
+  .sw-status.warn{background:rgba(201,168,76,0.15);color:var(--gold);}
+  .sw-status.err{background:var(--red-dim);color:var(--red);}
+  .sw-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+  /* MORNING BRIEFING */
+  .briefing-card{background:linear-gradient(135deg,#0f1a10,#0a0c12);border:1px solid rgba(62,207,142,0.3);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+  .briefing-label{font-size:11px;color:#3ecf8e;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;}
+
+  /* TOGGLE */
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+  .toggle-row:last-child{border-bottom:none;}
+  .toggle-info{flex:1;}
+  .toggle-title{font-size:14px;font-weight:500;color:var(--text);}
+  .toggle-sub{font-size:12px;color:var(--text-muted);margin-top:1px;}
+  .toggle{position:relative;width:44px;height:24px;flex-shrink:0;}
+  .toggle input{opacity:0;width:0;height:0;}
+  .toggle-slider{position:absolute;inset:0;background:var(--surface3);border-radius:12px;cursor:pointer;transition:0.3s;}
+  .toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:white;border-radius:50%;transition:0.3s;}
+  input:checked + .toggle-slider{background:var(--gold);}
+  input:checked + .toggle-slider::before{transform:translateX(20px);}
+</style>
+</head>
+<body>
+
+<!-- SERVICE WORKER INLINE -->
+<script id="swScript" type="text/worker">
+self.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'SCHEDULE') {
+    var d = e.data;
+    var delay = d.fireAt - Date.now();
+    if (delay < 0) delay = 0;
+    if (delay > 86400000) return; // skip if > 24h
+    setTimeout(function() {
+      self.registration.showNotification(d.title, {
+        body: d.body,
+        tag: d.tag,
+        requireInteraction: false,
+        vibrate: [200, 80, 200],
+        data: { sessionId: d.sessionId }
+      });
+    }, delay);
+  }
+  if (e.data && e.data.type === 'IMMEDIATE') {
+    self.registration.showNotification(e.data.title, {
+      body: e.data.body,
+      tag: e.data.tag || 'immediate',
+      vibrate: [150, 50, 150]
+    });
+  }
+});
+self.addEventListener('notificationclick', function(e) {
+  e.notification.close();
+  e.waitUntil(clients.matchAll({ type: 'window' }).then(function(cs) {
+    if (cs.length) return cs[0].focus();
+    return clients.openWindow('/');
+  }));
+});
+</script>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">📚</div>
+    <span class="logo-text">StudyForge</span>
+  </div>
+  <div class="header-right">
+    <div class="header-date" id="headerDate"></div>
+    <div class="notif-bell" id="notifBell" onclick="switchView('notifications')" title="Notification Center">
+      🔔
+      <div class="bell-badge" id="bellBadge" style="display:none">0</div>
+    </div>
+  </div>
+</header>
+
+<!-- NAV TABS -->
+<nav class="nav-tabs">
+  <button class="nav-tab active" onclick="switchView('dashboard')">Dashboard</button>
+  <button class="nav-tab" onclick="switchView('plan')">My Plan</button>
+  <button class="nav-tab" onclick="switchView('subjects')">Subjects</button>
+  <button class="nav-tab" onclick="switchView('add')">＋ Session</button>
+  <button class="nav-tab" onclick="switchView('notifications')">🔔 Alerts</button>
+</nav>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <div class="view active" id="view-dashboard">
+    <div style="margin-bottom:18px">
+      <div class="greeting">Good <span id="greetWord">morning</span>,<br>Scholar! ✨</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:3px" id="headerDate2"></div>
+    </div>
+
+    <div id="countdownCard" class="countdown-card" style="display:none">
+      <div class="countdown-label">📅 Days Until Exam</div>
+      <div class="countdown-value" id="daysCount">—</div>
+      <div class="countdown-sub" id="examNameDisplay"></div>
+    </div>
+
+    <div class="card card-gold" id="examSetup">
+      <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:11px;text-transform:uppercase;letter-spacing:0.8px">🎯 Exam Setup</div>
+      <div class="row">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Exam Name</label>
+          <input class="form-input" id="examName" placeholder="e.g. Finals" />
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Exam Date</label>
+          <input class="form-input" type="date" id="examDate" />
+        </div>
+      </div>
+      <div style="margin-top:11px">
+        <button class="btn btn-gold" onclick="saveExamInfo()">Save Exam Info</button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-number" id="statTotal">0</div><div class="stat-label">Total Sessions</div></div>
+      <div class="stat-card"><div class="stat-number" id="statDone">0</div><div class="stat-label">Completed</div></div>
+      <div class="stat-card"><div class="stat-number" id="statToday">0</div><div class="stat-label">Today</div></div>
+      <div class="stat-card"><div class="stat-number" id="statSubjects">0</div><div class="stat-label">Subjects</div></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
+        <span style="font-size:14px;font-weight:600">Overall Progress</span>
+        <span class="badge badge-gold" id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%;background:linear-gradient(90deg,var(--gold),var(--accent))"></div></div>
+    </div>
+
+    <div class="upcoming-header"><span class="upcoming-title">📋 Today's Sessions</span></div>
+    <div id="todayList"></div>
+    <div class="upcoming-header" style="margin-top:18px"><span class="upcoming-title">🔜 Upcoming</span></div>
+    <div id="upcomingList"></div>
+  </div>
+
+  <!-- PLAN -->
+  <div class="view" id="view-plan">
+    <div class="section-title">Study Plan</div>
+    <div class="section-sub">All your scheduled sessions</div>
+    <div style="display:flex;gap:7px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:3px">
+      <button class="btn btn-gold btn-sm" onclick="filterPlan('all',this)">All</button>
+      <button class="btn btn-ghost btn-sm" onclick="filterPlan('pending',this)">Pending</button>
+      <button class="btn btn-ghost btn-sm" onclick="filterPlan('done',this)">Done</button>
+      <button class="btn btn-ghost btn-sm" onclick="filterPlan('today',this)">Today</button>
+    </div>
+    <div id="planList"></div>
+  </div>
+
+  <!-- SUBJECTS -->
+  <div class="view" id="view-subjects">
+    <div class="section-title">My Subjects</div>
+    <div class="section-sub">Manage your exam subjects</div>
+    <div class="card card-gold" style="margin-bottom:18px">
+      <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:11px;text-transform:uppercase;letter-spacing:0.8px">➕ Add Subject</div>
+      <div class="form-group"><label class="form-label">Subject Name</label><input class="form-input" id="subjectName" placeholder="e.g. Mathematics" /></div>
+      <div class="form-group"><label class="form-label">Topics (comma separated)</label><input class="form-input" id="subjectTopics" placeholder="e.g. Algebra, Calculus, Statistics" /></div>
+      <div class="form-group">
+        <label class="form-label">Color</label>
+        <div class="color-picker" id="colorPicker">
+          <div class="color-opt selected" style="background:#4f7cff" data-color="#4f7cff" onclick="selectColor(this)"></div>
+          <div class="color-opt" style="background:#c9a84c" data-color="#c9a84c" onclick="selectColor(this)"></div>
+          <div class="color-opt" style="background:#3ecf8e" data-color="#3ecf8e" onclick="selectColor(this)"></div>
+          <div class="color-opt" style="background:#ff5c7a" data-color="#ff5c7a" onclick="selectColor(this)"></div>
+          <div class="color-opt" style="background:#a78bfa" data-color="#a78bfa" onclick="selectColor(this)"></div>
+          <div class="color-opt" style="background:#fb923c" data-color="#fb923c" onclick="selectColor(this)"></div>
+          <div class="color-opt" style="background:#22d3ee" data-color="#22d3ee" onclick="selectColor(this)"></div>
+          <div class="color-opt" style="background:#f472b6" data-color="#f472b6" onclick="selectColor(this)"></div>
+        </div>
+      </div>
+      <button class="btn btn-gold" onclick="addSubject()">Add Subject</button>
+    </div>
+    <div id="subjectList"></div>
+  </div>
+
+  <!-- ADD SESSION -->
+  <div class="view" id="view-add">
+    <div class="section-title">New Study Session</div>
+    <div class="section-sub">Plan your next study block</div>
+    <div class="card">
+      <div class="form-group"><label class="form-label">Subject</label><select class="form-select" id="sessionSubject" onchange="updateTopicDropdown()"><option value="">Select subject...</option></select></div>
+      <div class="form-group"><label class="form-label">Topic / Chapter</label><select class="form-select" id="sessionTopic"><option value="">Select topic...</option></select></div>
+      <div class="form-group"><label class="form-label">Unit / Section</label><input class="form-input" id="sessionUnit" placeholder="e.g. Chapter 3, Unit 2A" /></div>
+      <div class="row">
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Date</label><input class="form-input" type="date" id="sessionDate" /></div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Time</label><input class="form-input" type="time" id="sessionTime" /></div>
+      </div>
+      <div class="form-group" style="margin-top:14px"><label class="form-label">Duration</label><select class="form-select" id="sessionDuration"><option value="30">30 min</option><option value="45">45 min</option><option value="60" selected>1 hour</option><option value="90">1.5 hours</option><option value="120">2 hours</option><option value="180">3 hours</option></select></div>
+      <div class="form-group"><label class="form-label">Priority</label><select class="form-select" id="sessionPriority"><option value="high">🔴 High</option><option value="medium" selected>🟡 Medium</option><option value="low">🟢 Low</option></select></div>
+      <div class="form-group"><label class="form-label">Notes (optional)</label><textarea class="form-textarea" id="sessionNotes" placeholder="What will you focus on?"></textarea></div>
+      <div class="form-group">
+        <label class="form-label">🔔 Reminder Before Session</label>
+        <select class="form-select" id="sessionReminder">
+          <option value="0">At session time</option>
+          <option value="5">5 minutes before</option>
+          <option value="15" selected>15 minutes before</option>
+          <option value="30">30 minutes before</option>
+          <option value="60">1 hour before</option>
+          <option value="1440">Day before (9 AM)</option>
+        </select>
+      </div>
+      <button class="btn btn-gold" onclick="addSession()">📅 Schedule Session</button>
+    </div>
+  </div>
+
+  <!-- NOTIFICATIONS CENTER -->
+  <div class="view" id="view-notifications">
+    <div class="section-title">Notification Center</div>
+    <div class="section-sub">Manage your study reminders</div>
+
+    <!-- PERMISSION STATUS -->
+    <div id="permGranted" style="display:none" class="card card-green">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:28px">✅</span>
+        <div>
+          <div style="font-weight:600;font-size:14px;color:var(--green)">Notifications Active</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">You'll receive reminders for your study sessions</div>
+        </div>
+      </div>
+      <div id="swStatusEl" class="sw-status warn" style="margin-top:12px"><div class="sw-dot"></div><span>Checking service worker...</span></div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn btn-green btn-sm" onclick="sendTestNotification()">🔔 Send Test</button>
+        <button class="btn btn-ghost btn-sm" onclick="rescheduleAll()">🔄 Reschedule All</button>
+      </div>
+    </div>
+
+    <div id="permDefault" style="display:none" class="perm-card">
+      <div class="perm-icon">🔔</div>
+      <h3>Enable Notifications</h3>
+      <p>Get reminders before each study session — even when the app is in the background.</p>
+      <div class="perm-features">
+        <div class="perm-feature"><span>⏰</span>Session reminders</div>
+        <div class="perm-feature"><span>📅</span>Daily briefing</div>
+        <div class="perm-feature"><span>📳</span>Vibration</div>
+        <div class="perm-feature"><span>🔇</span>Fully customizable</div>
+      </div>
+      <button class="btn btn-accent" onclick="requestNotifications()">Enable Notifications</button>
+    </div>
+
+    <div id="permDenied" style="display:none" class="card" style="text-align:center">
+      <div style="font-size:36px;margin-bottom:8px">🚫</div>
+      <div style="font-weight:600;color:var(--red);margin-bottom:6px">Notifications Blocked</div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.5">Go to your browser settings → Site Settings → Notifications and allow this site. Then refresh the page.</div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="card" id="notifSettings" style="display:none">
+      <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px">⚙️ Notification Settings</div>
+      <div class="toggle-row">
+        <div class="toggle-info"><div class="toggle-title">Session Reminders</div><div class="toggle-sub">Notify before each study session</div></div>
+        <label class="toggle"><input type="checkbox" id="toggleReminders" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info"><div class="toggle-title">Daily Morning Briefing</div><div class="toggle-sub">Summary of today's sessions at 8 AM</div></div>
+        <label class="toggle"><input type="checkbox" id="toggleMorning" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info"><div class="toggle-title">Completion Praise</div><div class="toggle-sub">Celebrate when you finish a session</div></div>
+        <label class="toggle"><input type="checkbox" id="togglePraise" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info"><div class="toggle-title">Sound Effect</div><div class="toggle-sub">Play a soft chime with notification</div></div>
+        <label class="toggle"><input type="checkbox" id="toggleSound" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <!-- SCHEDULED NOTIFICATIONS -->
+    <div class="upcoming-header" style="margin-top:4px">
+      <span class="upcoming-title">📋 Scheduled Reminders</span>
+      <button class="btn btn-ghost btn-sm" onclick="clearFired()">Clear Fired</button>
+    </div>
+    <div id="notifList"></div>
+  </div>
+
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="sessionModal" onclick="closeModal(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle">Session Details</div>
+    <div id="modalContent"></div>
+    <div style="display:flex;gap:9px;margin-top:14px">
+      <button class="btn btn-ghost" onclick="closeModalDirect()">Close</button>
+      <button class="btn btn-danger" id="modalDeleteBtn">🗑 Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===========================
+// STATE
+// ===========================
+const DEFAULT_STATE = {
+  subjects:[],sessions:[],examName:'',examDate:'',
+  notifLog:[],// {id,title,body,fireAt,sessionId,fired,type}
+  notifSettings:{ reminders:true, morning:true, praise:true, sound:true },
+  currentFilter:'all'
+};
+
+let state = { ...DEFAULT_STATE };
+let swReg = null;
+let audioCtx = null;
+
+// ===========================
+// INIT
+// ===========================
+async function init() {
+  loadState();
+  updateHeaderDate();
+  updateGreeting();
+  renderAll();
+  setDefaultDate();
+  applyNotifSettings();
+  await initServiceWorker();
+  updatePermissionUI();
+  renderNotifications();
+  setInterval(updateHeaderDate, 30000);
+  setInterval(checkFiredNotifications, 60000);
+  checkFiredNotifications();
+  // Schedule morning briefing if needed
+  if (Notification.permission === 'granted') {
+    scheduleMorningBriefing();
+    rescheduleAll(true);
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) { checkFiredNotifications(); renderAll(); }
+  });
+}
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem('studyforge_v2');
+    if (saved) state = { ...DEFAULT_STATE, ...JSON.parse(saved) };
+  } catch(e) {}
+}
+
+function saveState() {
+  localStorage.setItem('studyforge_v2', JSON.stringify(state));
+}
+
+// ===========================
+// SERVICE WORKER
+// ===========================
+async function initServiceWorker() {
+  if (!('serviceWorker' in navigator)) {
+    setSWStatus('err', 'Service Worker not supported');
+    return;
+  }
+  try {
+    // Extract SW code from the <script type="text/worker"> tag
+    const swCode = document.getElementById('swScript').textContent;
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    const blobUrl = URL.createObjectURL(blob);
+    swReg = await navigator.serviceWorker.register(blobUrl);
+    setSWStatus('ok', 'Background notifications active');
+    console.log('SW registered:', swReg);
+  } catch(e) {
+    console.warn('SW blob registration failed, trying fallback:', e);
+    // Fallback: use setTimeout-based system
+    setSWStatus('warn', 'App-open reminders only (save as PWA for background)');
+  }
+}
+
+function setSWStatus(type, msg) {
+  const el = document.getElementById('swStatusEl');
+  if (!el) return;
+  el.className = 'sw-status ' + type;
+  el.innerHTML = `<div class="sw-dot"></div><span>${msg}</span>`;
+}
+
+function postToSW(msg) {
+  if (swReg && swReg.active) {
+    swReg.active.postMessage(msg);
+    return true;
+  }
+  // Fallback: setTimeout
+  if (msg.type === 'SCHEDULE') {
+    const delay = msg.fireAt - Date.now();
+    if (delay > 0 && delay < 86400000) {
+      setTimeout(() => fireLocalNotification(msg.title, msg.body, msg.tag), delay);
+    }
+  }
+  if (msg.type === 'IMMEDIATE') {
+    fireLocalNotification(msg.title, msg.body, msg.tag);
+  }
+  return false;
+}
+
+function fireLocalNotification(title, body, tag) {
+  if (Notification.permission !== 'granted') return;
+  const n = new Notification(title, { body, tag: tag || 'sf', requireInteraction: false });
+  n.onclick = () => window.focus();
+  if (state.notifSettings.sound) playChime();
+  if (navigator.vibrate) navigator.vibrate([200, 80, 200]);
+}
+
+// ===========================
+// NOTIFICATIONS
+// ===========================
+function updatePermissionUI() {
+  const p = Notification.permission;
+  document.getElementById('permGranted').style.display = p === 'granted' ? 'block' : 'none';
+  document.getElementById('permDefault').style.display = p === 'default' ? 'block' : 'none';
+  document.getElementById('permDenied').style.display = p === 'denied' ? 'block' : 'none';
+  document.getElementById('notifSettings').style.display = p === 'granted' ? 'block' : 'none';
+
+  const bell = document.getElementById('notifBell');
+  bell.className = 'notif-bell ' + (p === 'granted' ? 'granted' : p === 'denied' ? 'denied' : '');
+}
+
+function requestNotifications() {
+  Notification.requestPermission().then(perm => {
+    updatePermissionUI();
+    if (perm === 'granted') {
+      showToast('✅', 'Notifications enabled! Scheduling reminders...');
+      rescheduleAll();
+      scheduleMorningBriefing();
+      sendTestNotification(true);
+    } else {
+      showToast('⚠️', 'Permission denied. Check browser settings.');
+    }
+    renderNotifications();
+  });
+}
+
+function sendTestNotification(quiet = false) {
+  if (Notification.permission !== 'granted') { showToast('⚠️','Enable notifications first'); return; }
+  const title = '📚 StudyForge';
+  const body = "Notifications are working! You'll be reminded before every session.";
+  postToSW({ type:'IMMEDIATE', title, body, tag:'test' });
+  if (!quiet) showToast('🔔', 'Test notification sent!');
+  logNotification({ title, body, fireAt: Date.now(), type:'test', fired:true });
+}
+
+function scheduleSessionNotification(session) {
+  if (Notification.permission !== 'granted') return;
+  if (!state.notifSettings.reminders) return;
+  const sub = state.subjects.find(s => s.id === session.subjectId);
+  const sessionTime = new Date(`${session.date}T${session.time}`);
+  let fireAt;
+  if (session.reminder === 1440) {
+    // Day before at 9 AM
+    const dayBefore = new Date(sessionTime);
+    dayBefore.setDate(dayBefore.getDate() - 1);
+    dayBefore.setHours(9, 0, 0, 0);
+    fireAt = dayBefore.getTime();
+  } else {
+    fireAt = sessionTime.getTime() - (session.reminder * 60000);
+  }
+  if (fireAt <= Date.now()) return;
+  const title = session.reminder === 0 ? '📚 Study Time!' : `⏰ Study in ${session.reminder === 1440 ? 'Tomorrow' : session.reminder + ' min'}`;
+  const topic = session.topic || sub?.name || 'Study session';
+  const body = `${topic}${session.unit ? ' · ' + session.unit : ''} — ${sessionTime.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}`;
+  postToSW({ type:'SCHEDULE', title, body, fireAt, tag:'session-'+session.id, sessionId:session.id });
+  logNotification({ id:'notif-'+session.id, title, body, fireAt, sessionId:session.id, type:'reminder', fired:false });
+  saveState();
+}
+
+function scheduleMorningBriefing() {
+  if (!state.notifSettings.morning) return;
+  if (Notification.permission !== 'granted') return;
+  const tomorrow8am = new Date();
+  tomorrow8am.setDate(tomorrow8am.getDate() + 1);
+  tomorrow8am.setHours(8, 0, 0, 0);
+  const today = new Date().toISOString().split('T')[0];
+  const todaySessions = state.sessions.filter(s => s.date === today && !s.done);
+  if (todaySessions.length === 0) return;
+  const title = '🌅 Good morning, Scholar!';
+  const body = `You have ${todaySessions.length} study session${todaySessions.length>1?'s':''} scheduled today. Let's crush it!`;
+  postToSW({ type:'SCHEDULE', title, body, fireAt: tomorrow8am.getTime(), tag:'morning-briefing' });
+}
+
+function rescheduleAll(silent = false) {
+  state.sessions.filter(s => !s.done).forEach(scheduleSessionNotification);
+  if (!silent) { showToast('🔄', 'All reminders rescheduled!'); renderNotifications(); }
+}
+
+function logNotification(notif) {
+  // Remove old log entry for same session
+  if (notif.sessionId) {
+    state.notifLog = state.notifLog.filter(n => n.sessionId !== notif.sessionId);
+  }
+  if (notif.id && !notif.sessionId) {
+    state.notifLog = state.notifLog.filter(n => n.id !== notif.id);
+  }
+  state.notifLog.unshift({ ...notif, id: notif.id || 'n-' + Date.now() });
+  // Keep log max 50
+  if (state.notifLog.length > 50) state.notifLog = state.notifLog.slice(0, 50);
+  saveState();
+  updateBellBadge();
+}
+
+function checkFiredNotifications() {
+  const now = Date.now();
+  let changed = false;
+  state.notifLog.forEach(n => {
+    if (!n.fired && n.fireAt <= now) { n.fired = true; changed = true; }
+  });
+  if (changed) { saveState(); renderNotifications(); }
+}
+
+function updateBellBadge() {
+  const pending = state.notifLog.filter(n => !n.fired && n.fireAt > Date.now()).length;
+  const badge = document.getElementById('bellBadge');
+  if (pending > 0) { badge.style.display = 'flex'; badge.textContent = pending > 9 ? '9+' : pending; }
+  else { badge.style.display = 'none'; }
+}
+
+function clearFired() {
+  state.notifLog = state.notifLog.filter(n => !n.fired);
+  saveState();
+  renderNotifications();
+  showToast('🗑', 'Cleared fired notifications');
+}
+
+function renderNotifications() {
+  updateBellBadge();
+  const list = document.getElementById('notifList');
+  const notifs = [...state.notifLog].sort((a,b) => b.fireAt - a.fireAt);
+  if (notifs.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🔕</div><div class="empty-title">No reminders scheduled</div><div class="empty-sub">Add sessions to get reminders</div></div>`;
+    return;
+  }
+  const ICONS = { reminder:'📚', morning:'🌅', test:'🧪', praise:'🎉' };
+  const COLORS = { reminder:'rgba(79,124,255,0.15)', morning:'rgba(62,207,142,0.15)', test:'rgba(201,168,76,0.15)', praise:'rgba(167,139,250,0.15)' };
+  list.innerHTML = notifs.map(n => {
+    const fireDate = new Date(n.fireAt);
+    const timeStr = fireDate.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    const statusClass = n.fired ? 'badge-green' : (n.fireAt > Date.now() ? 'badge-accent' : 'badge-red');
+    const statusText = n.fired ? '✓ Sent' : (n.fireAt > Date.now() ? '⏳ Pending' : '⚠ Missed');
+    const icon = ICONS[n.type] || '🔔';
+    const bg = COLORS[n.type] || 'rgba(79,124,255,0.1)';
+    return `<div class="notif-item ${!n.fired && n.fireAt > Date.now() ? 'unread' : 'fired'}">
+      <div class="notif-icon-wrap" style="background:${bg}">${icon}</div>
+      <div class="notif-content">
+        <div class="notif-title">${n.title}</div>
+        <div class="notif-body">${n.body}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <div class="notif-time">${timeStr}</div>
+          <span class="badge ${statusClass} notif-status">${statusText}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===========================
+// SOUND
+// ===========================
+function playChime() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.3);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + 0.4);
+  } catch(e) {}
+}
+
+// ===========================
+// TOAST
+// ===========================
+function showToast(icon, message) {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<span style="font-size:17px">${icon}</span><span>${message}</span>`;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(-8px)'; t.style.transition = '0.3s'; setTimeout(() => t.remove(), 300); }, 3200);
+}
+
+// ===========================
+// UI
+// ===========================
+function updateHeaderDate() {
+  const now = new Date();
+  const str = now.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  document.getElementById('headerDate').textContent = str;
+  const d2 = document.getElementById('headerDate2');
+  if (d2) d2.textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+}
+
+function updateGreeting() {
+  const h = new Date().getHours();
+  document.getElementById('greetWord').textContent = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+}
+
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  const tabs = document.querySelectorAll('.nav-tab');
+  const idx = ['dashboard','plan','subjects','add','notifications'].indexOf(name);
+  if (idx >= 0) tabs[idx].classList.add('active');
+  if (name === 'add') updateSubjectDropdown();
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'plan') renderPlan();
+  if (name === 'subjects') renderSubjects();
+  if (name === 'notifications') { updatePermissionUI(); renderNotifications(); }
+}
+
+// ===========================
+// NOTIF SETTINGS
+// ===========================
+function applyNotifSettings() {
+  const s = state.notifSettings;
+  document.getElementById('toggleReminders').checked = s.reminders;
+  document.getElementById('toggleMorning').checked = s.morning;
+  document.getElementById('togglePraise').checked = s.praise;
+  document.getElementById('toggleSound').checked = s.sound;
+}
+
+function saveNotifSettings() {
+  state.notifSettings.reminders = document.getElementById('toggleReminders').checked;
+  state.notifSettings.morning = document.getElementById('toggleMorning').checked;
+  state.notifSettings.praise = document.getElementById('togglePraise').checked;
+  state.notifSettings.sound = document.getElementById('toggleSound').checked;
+  saveState();
+  showToast('💾', 'Settings saved');
+}
+
+// ===========================
+// EXAM
+// ===========================
+function saveExamInfo() {
+  const name = document.getElementById('examName').value.trim();
+  const date = document.getElementById('examDate').value;
+  if (!name || !date) { showToast('⚠️','Please fill in exam name and date'); return; }
+  state.examName = name; state.examDate = date;
+  saveState();
+  renderDashboard();
+  showToast('🎯', `Exam "${name}" saved!`);
+  // Schedule exam reminder
+  if (Notification.permission === 'granted') {
+    const examDate = new Date(date + 'T00:00:00');
+    const dayBefore = new Date(examDate); dayBefore.setDate(dayBefore.getDate() - 1); dayBefore.setHours(9,0,0,0);
+    const dayBefore3 = new Date(examDate); dayBefore3.setDate(dayBefore3.getDate() - 3); dayBefore3.setHours(9,0,0,0);
+    if (dayBefore3.getTime() > Date.now()) {
+      postToSW({ type:'SCHEDULE', title:'📚 3 Days Until ' + name, body:'Keep pushing! 3 days left. Review your notes today.', fireAt:dayBefore3.getTime(), tag:'exam-3day' });
+    }
+    if (dayBefore.getTime() > Date.now()) {
+      postToSW({ type:'SCHEDULE', title:'⚠️ ' + name + ' Tomorrow!', body:'Final preparation time. Review, rest well, and believe in yourself!', fireAt:dayBefore.getTime(), tag:'exam-day-before' });
+    }
+  }
+}
+
+// ===========================
+// SUBJECTS
+// ===========================
+let selectedColor = '#4f7cff';
+
+function selectColor(el) {
+  document.querySelectorAll('.color-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedColor = el.dataset.color;
+}
+
+function addSubject() {
+  const name = document.getElementById('subjectName').value.trim();
+  const raw = document.getElementById('subjectTopics').value.trim();
+  if (!name) { showToast('⚠️','Enter a subject name'); return; }
+  const topics = raw ? raw.split(',').map(t => t.trim()).filter(Boolean) : [];
+  state.subjects.push({ id:Date.now().toString(), name, topics, color:selectedColor, createdAt:new Date().toISOString() });
+  saveState(); renderSubjects(); renderAll();
+  document.getElementById('subjectName').value = '';
+  document.getElementById('subjectTopics').value = '';
+  showToast('📖', `"${name}" added!`);
+}
+
+function deleteSubject(id) {
+  state.subjects = state.subjects.filter(s => s.id !== id);
+  state.sessions = state.sessions.filter(s => s.subjectId !== id);
+  saveState(); renderSubjects(); renderAll();
+  showToast('🗑','Subject removed');
+}
+
+function renderSubjects() {
+  const list = document.getElementById('subjectList');
+  if (!state.subjects.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-title">No subjects yet</div><div class="empty-sub">Add your first subject above</div></div>`;
+    return;
+  }
+  list.innerHTML = state.subjects.map(s => {
+    const sessions = state.sessions.filter(se => se.subjectId === s.id);
+    const done = sessions.filter(se => se.done).length;
+    return `<div class="subject-item">
+      <div class="subject-color-dot" style="background:${s.color}"></div>
+      <div class="subject-info">
+        <div class="subject-name">${s.name}</div>
+        <div class="subject-meta">${s.topics.length} topic${s.topics.length!==1?'s':''} · ${done}/${sessions.length} done</div>
+        ${s.topics.length>0?`<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px">${s.topics.map(t=>`<span class="badge" style="background:${s.color}22;color:${s.color}">${t}</span>`).join('')}</div>`:''}
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="deleteSubject('${s.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ===========================
+// SESSIONS
+// ===========================
+function updateSubjectDropdown() {
+  const sel = document.getElementById('sessionSubject');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Select subject...</option>' + state.subjects.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  if (prev) sel.value = prev;
+  updateTopicDropdown();
+}
+
+function updateTopicDropdown() {
+  const subId = document.getElementById('sessionSubject').value;
+  const sub = state.subjects.find(s => s.id === subId);
+  const sel = document.getElementById('sessionTopic');
+  if (sub && sub.topics.length>0) {
+    sel.innerHTML = '<option value="">Select topic...</option>' + sub.topics.map(t=>`<option value="${t}">${t}</option>`).join('');
+    sel.disabled = false;
+  } else {
+    sel.innerHTML = '<option value="">No topics / Enter in unit field</option>';
+    sel.disabled = true;
+  }
+}
+
+function addSession() {
+  const subjectId = document.getElementById('sessionSubject').value;
+  const topic = document.getElementById('sessionTopic').value;
+  const unit = document.getElementById('sessionUnit').value.trim();
+  const date = document.getElementById('sessionDate').value;
+  const time = document.getElementById('sessionTime').value;
+  const duration = document.getElementById('sessionDuration').value;
+  const priority = document.getElementById('sessionPriority').value;
+  const notes = document.getElementById('sessionNotes').value.trim();
+  const reminder = parseInt(document.getElementById('sessionReminder').value);
+  if (!subjectId) { showToast('⚠️','Select a subject'); return; }
+  if (!date) { showToast('⚠️','Select a date'); return; }
+  if (!time) { showToast('⚠️','Select a time'); return; }
+  const session = { id:Date.now().toString(), subjectId, topic, unit, date, time, duration:parseInt(duration), priority, notes, reminder, done:false, createdAt:new Date().toISOString() };
+  state.sessions.push(session);
+  state.sessions.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  saveState();
+  scheduleSessionNotification(session);
+  renderAll();
+  document.getElementById('sessionUnit').value = '';
+  document.getElementById('sessionNotes').value = '';
+  setDefaultDate();
+  const sub = state.subjects.find(s => s.id === subjectId);
+  showToast('✅', `Session scheduled for ${sub?.name}!`);
+  switchView('plan');
+}
+
+function setDefaultDate() {
+  document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('sessionTime').value = '09:00';
+}
+
+function toggleDone(id) {
+  const s = state.sessions.find(s => s.id === id);
+  if (!s) return;
+  s.done = !s.done;
+  saveState(); renderAll();
+  if (s.done) {
+    if (state.notifSettings.praise) {
+      const msgs = ['Great job! 🌟','You crushed it! 💪','One step closer to the exam! 🎯','Brilliant work! 🧠','Keep it up! 🔥'];
+      showToast('🎉', msgs[Math.floor(Math.random()*msgs.length)]);
+    }
+    if (state.notifSettings.sound) playChime();
+  }
+}
+
+function deleteSession(id) {
+  state.sessions = state.sessions.filter(s => s.id !== id);
+  state.notifLog = state.notifLog.filter(n => n.sessionId !== id);
+  saveState(); renderAll(); closeModalDirect();
+  showToast('🗑','Session deleted');
+}
+
+function filterPlan(filter, btn) {
+  state.currentFilter = filter;
+  document.querySelectorAll('#view-plan .btn').forEach(b => b.className = 'btn btn-ghost btn-sm');
+  if (btn) btn.className = 'btn btn-gold btn-sm';
+  renderPlan();
+}
+
+// ===========================
+// RENDER
+// ===========================
+const PRIORITY_COLORS = { high:'#ff5c7a', medium:'#c9a84c', low:'#3ecf8e' };
+
+function sessionCard(s, showDate=false) {
+  const sub = state.subjects.find(su => su.id === s.subjectId);
+  const color = sub?.color || '#4f7cff';
+  const pColor = PRIORITY_COLORS[s.priority];
+  const dateObj = new Date(`${s.date}T${s.time}`);
+  const timeStr = dateObj.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  const dateStr = showDate ? dateObj.toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+  const topic = s.topic || s.unit || 'General study';
+  return `<div class="plan-item ${s.done?'done':''}" style="">
+    <style>.pi-${s.id}::before{background:${color}!important}</style>
+    <div class="plan-item pi-${s.id}" style="display:none"></div>
+    <div class="plan-check" onclick="event.stopPropagation();toggleDone('${s.id}')">
+      <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="plan-info" onclick="openSessionModal('${s.id}')">
+      <div class="plan-title">${topic}${s.unit&&s.topic?' · '+s.unit:''}</div>
+      <div class="plan-meta">
+        <span style="font-size:11px;font-weight:600;color:${color}">${sub?.name||'Unknown'}</span>
+        <span class="plan-time">🕐 ${timeStr}${dateStr?' · '+dateStr:''}</span>
+        <span class="plan-time">⏱ ${s.duration}m</span>
+        <span class="priority"><span class="priority-dot" style="background:${pColor}"></span>${s.priority}</span>
+        ${s.reminder>0?`<span class="plan-time">🔔 -${s.reminder===1440?'1d':s.reminder+'m'}</span>`:''}
+      </div>
+    </div>
+  </div>`.replace('<div class="plan-item pi-'+s.id+'" style="display:none"></div>','');
+}
+
+// Simpler approach for the colored bar
+function sessionCardHTML(s, showDate=false) {
+  const sub = state.subjects.find(su => su.id === s.subjectId);
+  const color = sub?.color || '#4f7cff';
+  const pColor = PRIORITY_COLORS[s.priority];
+  const dateObj = new Date(`${s.date}T${s.time}`);
+  const timeStr = dateObj.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  const dateStr = showDate ? dateObj.toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+  const topic = s.topic || s.unit || 'General study';
+  return `<div class="plan-item ${s.done?'done':''}" style="border-left:3px solid ${color};">
+    <div class="plan-check" onclick="event.stopPropagation();toggleDone('${s.id}')">
+      <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="plan-info" onclick="openSessionModal('${s.id}')">
+      <div class="plan-title">${topic}${s.unit&&s.topic?' · '+s.unit:''}</div>
+      <div class="plan-meta">
+        <span style="font-size:11px;font-weight:600;color:${color}">${sub?.name||'Unknown'}</span>
+        <span class="plan-time">🕐 ${timeStr}${dateStr?' · '+dateStr:''}</span>
+        <span class="plan-time">⏱ ${s.duration}m</span>
+        <span class="priority"><span class="priority-dot" style="background:${pColor}"></span>${s.priority}</span>
+        ${s.reminder>0?`<span class="plan-time">🔔 -${s.reminder===1440?'1d':s.reminder+'m'}</span>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderAll() { renderDashboard(); renderPlan(); renderSubjects(); renderNotifications(); }
+
+function renderDashboard() {
+  if (state.examName && state.examDate) {
+    const diff = Math.ceil((new Date(state.examDate) - new Date()) / 86400000);
+    document.getElementById('countdownCard').style.display = 'block';
+    document.getElementById('daysCount').textContent = diff > 0 ? diff : (diff === 0 ? '🎉 Today!' : '✅ Done');
+    document.getElementById('examNameDisplay').textContent = state.examName;
+    document.getElementById('examName').value = state.examName;
+    document.getElementById('examDate').value = state.examDate;
+  }
+  const total = state.sessions.length;
+  const done = state.sessions.filter(s=>s.done).length;
+  const today = new Date().toISOString().split('T')[0];
+  const todaySessions = state.sessions.filter(s=>s.date===today);
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statDone').textContent = done;
+  document.getElementById('statToday').textContent = todaySessions.length;
+  document.getElementById('statSubjects').textContent = state.subjects.length;
+  const pct = total > 0 ? Math.round((done/total)*100) : 0;
+  document.getElementById('progressPct').textContent = pct+'%';
+  document.getElementById('progressFill').style.width = pct+'%';
+
+  const todayList = document.getElementById('todayList');
+  todayList.innerHTML = todaySessions.length ? todaySessions.map(s=>sessionCardHTML(s)).join('') :
+    `<div class="empty-state" style="padding:20px"><div class="empty-icon">☀️</div><div class="empty-title">No sessions today</div><div class="empty-sub">Add a session to get started</div></div>`;
+
+  const next7 = new Date(); next7.setDate(next7.getDate()+7);
+  const upcoming = state.sessions.filter(s=>s.date>today && new Date(s.date)<=next7).slice(0,5);
+  const upcomingList = document.getElementById('upcomingList');
+  upcomingList.innerHTML = upcoming.length ? upcoming.map(s=>sessionCardHTML(s,true)).join('') :
+    `<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:10px">No upcoming sessions in next 7 days</div>`;
+}
+
+function renderPlan() {
+  const list = document.getElementById('planList');
+  const today = new Date().toISOString().split('T')[0];
+  let sessions = [...state.sessions];
+  if (state.currentFilter==='done') sessions = sessions.filter(s=>s.done);
+  else if (state.currentFilter==='pending') sessions = sessions.filter(s=>!s.done);
+  else if (state.currentFilter==='today') sessions = sessions.filter(s=>s.date===today);
+  if (!sessions.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No sessions found</div><div class="empty-sub">Use "＋ Session" to get started</div></div>`;
+    return;
+  }
+  const byDate = {};
+  sessions.forEach(s => { if (!byDate[s.date]) byDate[s.date]=[]; byDate[s.date].push(s); });
+  list.innerHTML = Object.entries(byDate).map(([date, sArr]) => {
+    const d = new Date(date+'T00:00:00');
+    const isToday = date===today;
+    const label = isToday ? 'Today' : d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+    return `<div class="date-section">
+      <div class="date-circle"><div class="date-day">${d.getDate()}</div><div class="date-month">${d.toLocaleDateString('en-US',{month:'short'})}</div></div>
+      <div class="date-info"><h3>${label}</h3><p>${sArr.length} session${sArr.length!==1?'s':''}</p></div>
+    </div>
+    ${sArr.map(s=>sessionCardHTML(s)).join('')}
+    <div class="divider"></div>`;
+  }).join('');
+}
+
+// ===========================
+// MODAL
+// ===========================
+function openSessionModal(id) {
+  const s = state.sessions.find(se=>se.id===id);
+  if (!s) return;
+  const sub = state.subjects.find(su=>su.id===s.subjectId);
+  const color = sub?.color||'#4f7cff';
+  const pColor = PRIORITY_COLORS[s.priority];
+  const dateObj = new Date(`${s.date}T${s.time}`);
+  document.getElementById('modalTitle').textContent = s.topic || sub?.name || 'Session';
+  document.getElementById('modalContent').innerHTML = `
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">
+      <span class="badge" style="background:${color}22;color:${color}">${sub?.name||'?'}</span>
+      <span class="badge" style="background:${pColor}22;color:${pColor}">${s.priority} priority</span>
+      ${s.done?'<span class="badge badge-green">✅ Completed</span>':'<span class="badge badge-accent">⏳ Pending</span>'}
+    </div>
+    ${s.unit?`<div style="font-size:13px;color:var(--text-muted);margin-bottom:7px">📌 ${s.unit}</div>`:''}
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:11px">
+      📅 ${dateObj.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})} at ${dateObj.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})} · ${s.duration} min
+    </div>
+    ${s.notes?`<div style="background:var(--surface2);border-radius:10px;padding:11px;font-size:13px;color:var(--text-muted);margin-bottom:11px">📝 ${s.notes}</div>`:''}
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px">🔔 Reminder: ${s.reminder===0?'At session time':s.reminder===1440?'Day before (9 AM)':s.reminder+' min before'}</div>
+    <button class="btn ${s.done?'btn-ghost':'btn-gold'}" onclick="toggleDone('${s.id}');closeModalDirect()">
+      ${s.done?'↩ Mark as Pending':'✅ Mark as Complete'}
+    </button>`;
+  document.getElementById('modalDeleteBtn').onclick = () => deleteSession(id);
+  document.getElementById('sessionModal').classList.add('open');
+}
+
+function closeModal(e) { if (e.target===document.getElementById('sessionModal')) closeModalDirect(); }
+function closeModalDirect() { document.getElementById('sessionModal').classList.remove('open'); }
+
+// ===========================
+// BOOT
+// ===========================
+init();
+</script>
+</body>
+</html>
